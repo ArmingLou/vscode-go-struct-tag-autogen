@@ -5,7 +5,8 @@ import { supportedCases } from './constants';
 
 export function executeGenerateTagCommand(
   textEditor: vscode.TextEditor,
-  edit: vscode.TextEditorEdit
+  edit: vscode.TextEditorEdit,
+  type: string | undefined,
 ) {
   const document = textEditor.document;
   for (let selection of textEditor.selections) {
@@ -16,12 +17,12 @@ export function executeGenerateTagCommand(
       for (let line of fieldLines) {
         const field = getField(document.lineAt(line).text);
         if (field) {
-          const tags = generateTags(field);
+          const tags = generateTags(field,type);
           edit.insert(
             new vscode.Position(
               line,
               document.lineAt(line).text.includes('//')
-                ? document.lineAt(line).text.indexOf('//') - 1
+                ? document.lineAt(line).text.indexOf('//')
                 : document.lineAt(line).range.end.character
             ),
             ` \`${tags}\``
@@ -35,7 +36,7 @@ export function executeGenerateTagCommand(
 }
 
 function getField(text: string): string | null {
-  const field = /^\s*([a-zA-Z_][a-zA-Z_\d]*)\s+[a-zA-Z_\.\[\]]*/;
+  const field = /^\s*([a-zA-Z_][a-zA-Z_\d]*)\s+\*?[a-zA-Z_\.\[\]]+/;
   const list = field.exec(text);
   if (!list) {
     return null;
@@ -67,7 +68,7 @@ function getFieldLines(
 
   res = res.filter((line) => {
     const text = document.lineAt(line).text;
-    const field = /^\s*([a-zA-Z_][a-zA-Z_\d]*)\s+[a-zA-Z_\[\]]*/;
+    const field = /^\s*([a-zA-Z_][a-zA-Z_\d]*)\s+\*?[a-zA-Z_\[\]]+/;
     return field.exec(text) !== null && !text.includes('`');
   });
   return res;
@@ -125,10 +126,21 @@ function getStructScope(
   return { start: headLine, end: tailLine };
 }
 
-function generateTags(field: string): string {
+function generateTags(field: string,type: string | undefined): string {
   const cfg = config.getGenerationConfig();
 
   let tags = cfg.template;
+  if(type){
+    if(type === 'json-form-gorm'){
+      tags = cfg.templateJsonFormGorm;
+    }else if(type === 'json-gorm'){
+      tags = cfg.templateJsonGorm;
+    }else if(type === 'json-form'){
+      tags = cfg.templateJsonForm;
+    }else if(type === 'json'){
+      tags = cfg.templateJson;
+    }
+  }
   for (let c of supportedCases) {
     const r = new RegExp(`{{${c}}}`, 'g');
     tags = tags.replace(r, formatField(field, c));

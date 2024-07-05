@@ -6,6 +6,10 @@ let currentConfig: Config = {
 	valueSuggestion: {},
 	generation: {
 		template: '',
+		templateJson: '',
+		templateJsonForm: '',
+		templateJsonGorm: '',
+		templateJsonFormGorm: '',
 	},
 }
 
@@ -69,6 +73,31 @@ function loadConfig() {
 	} else {
 		err.push('template')
 	}
+
+	if (generation && generation.templateJson && typeof(generation.templateJson) === 'string') {
+		currentConfig.generation.templateJson = generation.templateJson
+	} else {
+		err.push('templateJson')
+	}
+
+	if (generation && generation.templateJsonGorm && typeof(generation.templateJsonGorm) === 'string') {
+		currentConfig.generation.templateJsonGorm = generation.templateJsonGorm
+	} else {
+		err.push('templateJsonGorm')
+	}
+
+	if (generation && generation.templateJsonForm && typeof(generation.templateJsonForm) === 'string') {
+		currentConfig.generation.templateJsonForm = generation.templateJsonForm
+	} else {
+		err.push('templateJsonForm')
+	}
+
+	if (generation && generation.templateJsonFormGorm && typeof(generation.templateJsonFormGorm) === 'string') {
+		currentConfig.generation.templateJsonFormGorm = generation.templateJsonFormGorm
+	} else {
+		err.push('templateJsonFormGorm')
+	}
+
 
 	if (err.length > 0) {
 		vscode.window

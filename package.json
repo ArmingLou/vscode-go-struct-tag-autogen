@@ -15,10 +15,10 @@
 		"json",
 		"bson"
 	],
-	"version": "1.1.2",
-	"publisher": "maxnatchanon",
+	"version": "1.3.0",
+	"publisher": "Arming",
 	"author": {
-		"name": "Natchanon A."
+		"name": "Arming"
 	},
 	"icon": "assets/icon.png",
 	"engines": {
@@ -41,6 +41,10 @@
 	"contributes": {
 		"commands": [
 			{
+				"command": "goStructTagAutogen.generateStructTags.selector",
+				"title": "Go Tag Autogen: Generate Struct Tags by selector"
+			},
+			{
 				"command": "goStructTagAutogen.generateStructTags",
 				"title": "Go Tag Autogen: Generate Struct Tags"
 			}
@@ -49,14 +53,14 @@
 			"editor/context": [
 				{
 					"when": "resourceLangId == go",
-					"command": "goStructTagAutogen.generateStructTags",
+					"command": "goStructTagAutogen.generateStructTags.selector",
 					"group": "goStructTagAutogen"
 				}
 			]
 		},
 		"keybindings": [
 			{
-				"command": "goStructTagAutogen.generateStructTags",
+				"command": "goStructTagAutogen.generateStructTags.selector",
 				"mac": "ctrl+shift+t",
 				"when": "editorTextFocus"
 			}
@@ -74,7 +78,15 @@
 							"options": [
 								"-",
 								"omitempty"
-							]
+							],
+							"splitter": ","
+						},
+						"form": {
+							"cases": [
+								"camel"
+							],
+							"options": [],
+							"splitter": ","
 						},
 						"bson": {
 							"cases": [
@@ -83,12 +95,25 @@
 							"options": [
 								"-",
 								"omitempty"
-							]
+							],
+							"splitter": ","
 						},
 						"binding": {
 							"options": [
-								"required"
-							]
+								"required",
+								"oneof="
+							],
+							"splitter": ","
+						},
+						"gorm": {
+							"cases": [
+								"snake"
+							],
+							"options": [
+								"-"
+							],
+							"splitter": ";",
+							"prefix": "column:"
 						}
 					},
 					"description": "Go struct tag suggestion config. Go to https://github.com/maxnatchanon/vscode-go-struct-tag-autogen for more detail."
@@ -103,7 +128,8 @@
 							"omitempty"
 						],
 						"binding": [
-							"required"
+							"required",
+							"oneof="
 						]
 					},
 					"description": "Go struct tag value suggestion config. Go to https://github.com/maxnatchanon/vscode-go-struct-tag-autogen for more detail."
@@ -111,7 +137,11 @@
 				"goStructTagAutogen.generation": {
 					"type": "object",
 					"default": {
-						"template": "json:\"{{camel}}\" bson:\"{{snake}}\""
+						"template": "json:\"{{camel}}\" bson:\"{{snake}}\"",
+						"templateJson": "json:\"{{camel}}\"",
+						"templateJsonGorm": "json:\"{{camel}}\" gorm:\"column:{{snake}}\"",
+						"templateJsonForm": "json:\"{{camel}}\" form:\"{{camel}}\"",
+						"templateJsonFormGorm": "json:\"{{camel}}\" form:\"{{camel}}\" gorm:\"column:{{snake}}\""
 					},
 					"description": "Go struct tag generation command config. Go to https://github.com/maxnatchanon/vscode-go-struct-tag-autogen for more detail."
 				}

@@ -8,12 +8,14 @@ let configDisposable: vscode.Disposable
 let tagSuggestionDisposable: vscode.Disposable
 let valueSuggestionDisposable: vscode.Disposable
 let generationDisposable: vscode.Disposable
+let generationDisposableDefault: vscode.Disposable
 
 export async function activate(context: vscode.ExtensionContext) {
 	configDisposable = config.init()
 	tagSuggestionDisposable = registerTagSuggestion()
 	valueSuggestionDisposable = registerValueSuggestion()
 	generationDisposable = registerGenerationCommand()
+	generationDisposableDefault = registerGenerationCommandDefault()
 
 	config.onValueSuggestionConfigChange(() => {
 		valueSuggestionDisposable.dispose()
@@ -26,6 +28,7 @@ export function deactivate(context: vscode.ExtensionContext) {
 	tagSuggestionDisposable.dispose()
 	valueSuggestionDisposable.dispose()
 	generationDisposable.dispose()
+	generationDisposableDefault.dispose()
 }
 
 function registerTagSuggestion(): vscode.Disposable {
@@ -64,7 +67,33 @@ function registerValueSuggestion(): vscode.Disposable {
 
 function registerGenerationCommand(): vscode.Disposable {
 	return vscode.commands.registerTextEditorCommand(
-		'goStructTagAutogen.generateStructTags',
-		executeGenerateTagCommand,
-	)
+		'goStructTagAutogen.generateStructTags.selector', async (textEditor, edit) => {
+
+			const itemsThenable = vscode.window.showQuickPick([
+				'json',
+				'json-gorm',
+				'json-form',
+				'json-form-gorm',
+				'default'
+			], {
+				placeHolder: 'Select generation type',
+			});
+			itemsThenable.then((val) => {
+				if (val) {
+					// vscode.window.showInformationMessage('User choose 1:' + val);
+					vscode.commands.executeCommand('goStructTagAutogen.generateStructTags',val);
+					// vscode.window.showInformationMessage('User choose 2:' + val);
+				}
+			});
+
+		}
+	);
+}
+
+function registerGenerationCommandDefault(): vscode.Disposable {
+	return vscode.commands.registerTextEditorCommand(
+		'goStructTagAutogen.generateStructTags', async (textEditor, edit,...args) => {
+			executeGenerateTagCommand(textEditor, edit, args[0]);
+		}
+	);
 }

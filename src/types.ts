@@ -13,6 +13,8 @@ export type TagSuggestionConfig = {
 export type TagSuggestion = {
 	cases?: Case[]
 	options?: string[]
+	prefix?: string
+	splitter?: string 
 }
 
 export type ValueSuggestionConfig = {
@@ -21,4 +23,8 @@ export type ValueSuggestionConfig = {
 
 export type GenerationConfig = {
 	template: string
+	templateJson: string
+	templateJsonGorm: string
+	templateJsonForm: string
+	templateJsonFormGorm: string
 }

@@ -54,20 +54,26 @@ function generateCompletionItems(tag: string, field: string): vscode.CompletionI
 	const cfg = config.getTagSuggestionConfig(tag)
 	if (!cfg) return []
 
+	let prefix=''
+	if (cfg.prefix) prefix = cfg.prefix
+
+	let splitter=','
+	if (cfg.splitter) splitter = cfg.splitter
+
 	// cases available - generate with field name
 	if (cfg.cases) {
 		var completions: vscode.CompletionItem[] = []
 		const formattedFields = cfg.cases.map((c) => formatField(field, c))
 	
 		for (let formattedField of formattedFields) {
-			completions.push(new vscode.CompletionItem(`${tag}:"${formattedField}"`, vscode.CompletionItemKind.Text))
+			completions.push(new vscode.CompletionItem(`${tag}:"${prefix}${formattedField}"`, vscode.CompletionItemKind.Text))
 			if (cfg.options) {
 				for (let option of cfg.options) {
 					if (option === '-') {
 						completions.push(new vscode.CompletionItem(`${tag}:"-"`, vscode.CompletionItemKind.Text))
 						continue
 					}
-					completions.push(new vscode.CompletionItem(`${tag}:"${formattedField},${option}"`, vscode.CompletionItemKind.Text))
+					completions.push(new vscode.CompletionItem(`${tag}:"${prefix}${formattedField}${splitter}${option}"`, vscode.CompletionItemKind.Text))
 				}
 			}
 		}

@@ -93,7 +93,7 @@ function registerGenerationCommand(): vscode.Disposable {
 function registerGenerationCommandDefault(): vscode.Disposable {
 	return vscode.commands.registerTextEditorCommand(
 		'goStructTagAutogen.generateStructTags', async (textEditor, edit,...args) => {
-			executeGenerateTagCommand(textEditor, edit, args[0]);
+			await executeGenerateTagCommand(textEditor, edit, args[0]);
 		}
 	);
 }

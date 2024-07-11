@@ -1,3 +1,5 @@
+import { Position, TextDocument } from "vscode"
+
 export type Case = 'none' | 'camel' | 'snake' | 'uppersnake' | 'pascal'
 
 export type Config = {
@@ -28,3 +30,13 @@ export type GenerationConfig = {
 	templateJsonForm: string
 	templateJsonFormGorm: string
 }
+
+
+export type FieldFull = {
+	names: string[] | null;//null 表示隐藏内嵌字段 或者 } 结尾
+	type: string;
+	tagJson: string;
+	typePosition: Position;
+	document: TextDocument;
+  };
+  

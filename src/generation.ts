@@ -90,11 +90,11 @@ function getFields(
     const text = document.lineAt(line).text;
     // const field = /^\s*(([\w]+)\s)?\s*([\*\[\]\.\w\{\}]+)/;
     const fieldMulti = /^\s*([\w]+(\s*,\s*[\w]+)*\s)?\s*([\*\[\]\.\w\{\}]+)/;
-    const tag = /^[^\/]*`.*json:"(\-,)?([^,"]*).*"/;
+    const tag = /^[^\/`]*`([^`]*)/;
     // const fs = field.exec(text);
     const fsMult = fieldMulti.exec(text);
     const tagJson = tag.exec(text);
-    const tg = tagJson ? tagJson[1] ? tagJson[1] : tagJson[2] : '';
+    const tg = tagJson ? tagJson[1] : '';
     let pos: vscode.Position = new vscode.Position(line, 0);
     if (fsMult) {
       let idx = text.indexOf(fsMult[3]);
@@ -113,17 +113,20 @@ function getFields(
     if (field === null) {
       return false;
     }
-    if (field.tagJson !== '') {
-      return false; // 已经有 tag 的，不重复处理
-    }
+
     if (field.names === null && field.type !== '}') {
       //隐藏字段
       if (!(/^[A-Z]/.test(fixTypeStr(getSuffixName(field.type))))) {
         return false; //  隐藏字段，且私有的，不处理
       }
     }
-    if (field.names !== null && field.names.length > 1 && !isInerStructStart(field)) {
-      return false; // 多个名字的，不处理 // 保留内部struct 开始{
+    if (!isInerStructStart(field)) {
+      if (field.tagJson !== '' && field.type !== '}') {
+        return false; // 已经有 tag 的，不重复处理
+      }
+      if (field.names !== null && field.names.length > 1) {
+        return false; // 多个名字的，不处理 // 保留内部struct 开始{
+      }
     }
 
     return true;
@@ -270,7 +273,7 @@ function isInerStructStart(field: FieldFull): boolean {
   return false;
 }
 
-function getSuffixName(type: string): string {
+export function getSuffixName(type: string): string {
   let index = type.lastIndexOf('.');
   if (index > 0) {
     return type.substring(index + 1);
@@ -278,7 +281,7 @@ function getSuffixName(type: string): string {
   return type;
 }
 
-function fixTypeStr(type: string): string {
+export function fixTypeStr(type: string): string {
   if (type.startsWith('*')) {
     return type.substring(1);
   }
@@ -544,6 +547,19 @@ function isBaseType(position: vscode.Position,
     case 'sql.NullTime': case 'NullTime': case 'gorm.DeletedAt'://常用的第三方类型
     case 'time.Duration': //常用的第三方类型
       return true;
+    default: //其他自定义类型，返回空 ,下一步处理
+      return false;
+  }
+}
+
+function unsupportedType(position: vscode.Position,
+  document: vscode.TextDocument,type: string): boolean {
+  type = fixTypeStr(type);
+
+  switch (type) {
+    case 'chan': //不支持序列化类型，异常提示
+      return true;
+    // throw new Error(`该struct不能序列化, 因含有 ${type} 类型字段。 (${document.fileName} : ${position.line + 1})`);
     default: //其他自定义类型，返回空 ,下一步处理
       return false;
   }

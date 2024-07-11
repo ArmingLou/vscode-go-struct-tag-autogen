@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 import config from './config'
 import { formatField } from './formatter'
+import { fixTypeStr, getSuffixName } from './generation'
 
 export function getTagSuggestions(text: string): vscode.CompletionItem[] {
     let field: string
@@ -26,7 +27,7 @@ export function getTagSuggestions(text: string): vscode.CompletionItem[] {
 }
 
 function getFieldAndTag(text: string): { field: string, partialTag: string } {
-	const regex = /^\s*([a-zA-Z_][a-zA-Z_\d]*)\s+[a-zA-Z_\d\.\[\]{}\*]*\s+`(.*)/
+	const regex = /^\s*(\*?[a-zA-Z_][\w\.]*)\s*(\s+[\w\.\[\]\{\}\*]*)?\s*`(.*)/
 	const list = regex.exec(text)
 	if (!list) {
 		throw new Error('not matched')
@@ -34,9 +35,9 @@ function getFieldAndTag(text: string): { field: string, partialTag: string } {
 	if ((text.split('`').length - 1) % 2 === 0) {
 		throw new Error('not in tag')
 	}
-	const tagList = list[2].split(/\s/)
+	const tagList = list[3].split(/\s/)
 	return {
-		field: list[1],
+		field: fixTypeStr(getSuffixName( list[1])),
 		partialTag: tagList[tagList.length - 1],
 	}
 }

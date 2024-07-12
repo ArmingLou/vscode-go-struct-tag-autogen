@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import config from './config';
 import { formatField } from './formatter';
 import { supportedCases } from './constants';
-import { FieldFull } from './types';
+import { FieldFull, InsertText } from './types';
 import * as fs from 'fs';
 
 export async function executeGenerateTagCommand(
@@ -17,7 +17,13 @@ export async function executeGenerateTagCommand(
 
     try {
       const lines = await getFields(start, end, document);
-      await genTagsOfStruct(edit, type, lines);
+      const inserts = await genTagsOfStruct(edit, type, lines);
+
+      await vscode.window.activeTextEditor?.edit((editBuilder) => {
+        for (let insert of inserts) {
+          editBuilder.insert(insert.position, insert.text);
+        }
+      });
     } catch (err: any) {
       vscode.window.showErrorMessage(`${err.toString()} (line ${start + 1})`);
     }
@@ -173,13 +179,13 @@ function getStructScope(
   if (headLine === tailLine && headLine !== -1) {
     //空struct
     if (line !== headLine) {
-      throw new Error(`光标不在 struct 内 (${document.fileName} : ${line + 1})`);
+      throw new Error(`光标不在 struct 定义代码块内 (${document.fileName} : ${line + 1})`);
     }
     return { start: headLine, end: headLine };
   }
 
   if (headLine === -1 && backetStartLine === -1) {
-    throw new Error(`光标不在 struct 内 (${document.fileName} : ${line + 1})`);
+    throw new Error(`光标不在 struct 定义代码块内 (${document.fileName} : ${line + 1})`);
   }
 
   // 在独立 type struct {} 定义中找到 定义 结束行
@@ -204,7 +210,7 @@ function getStructScope(
 
 
     if (tailLine === -1 || tailLine < line) {
-      throw new Error(`光标不在 struct 内 (${document.fileName} : ${line + 1})`);
+      throw new Error(`光标不在 struct 定义代码块内 (${document.fileName} : ${line + 1})`);
     }
 
   }
@@ -248,7 +254,7 @@ function getStructScope(
     }
 
     if (tailLine === -1) {
-      throw new Error(`光标不在 struct 内 (${document.fileName} : ${line + 1})`);
+      throw new Error(`光标不在 struct 定义代码块内 (${document.fileName} : ${line + 1})`);
     }
 
 
@@ -256,7 +262,7 @@ function getStructScope(
   }
 
   if (headLine === -1) {
-    throw new Error(`光标不在 struct (${document.fileName} : ${line + 1})`);
+    throw new Error(`光标不在 struct 定义代码块内 (${document.fileName} : ${line + 1})`);
   }
 
 
@@ -289,7 +295,7 @@ export function fixTypeStr(type: string): string {
 }
 
 
-async function genTagOfField(edit: vscode.TextEditorEdit, type: string | undefined, field: FieldFull, nameSpc: string = '') {
+async function genTagOfField(edit: vscode.TextEditorEdit, type: string | undefined, field: FieldFull, nameSpc: string = ''): Promise<InsertText> {
   let name = '';
   if (nameSpc !== '') {
     name = nameSpc
@@ -303,20 +309,15 @@ async function genTagOfField(edit: vscode.TextEditorEdit, type: string | undefin
   const tags = generateTags(name, type);
   const line = field.typePosition.line;
   const document = field.document;
-  await vscode.window.activeTextEditor?.edit((editBuilder) => {
-    editBuilder.insert(new vscode.Position(
-      line,
-      document.lineAt(line).text.includes('//')
-        ? document.lineAt(line).text.indexOf('//')
-        : document.lineAt(line).range.end.character
-    ),
-      ` \`${tags}\``
-    );
-  });
+  return {
+    position: new vscode.Position(line, document.lineAt(line).text.includes('//') ? document.lineAt(line).text.indexOf('//') : document.lineAt(line).range.end.character),
+    text: ` \`${tags}\``
+  }
 }
 
-async function genTagsOfStruct(edit: vscode.TextEditorEdit, type: string | undefined, fields: FieldFull[]) {
+async function genTagsOfStruct(edit: vscode.TextEditorEdit, type: string | undefined, fields: FieldFull[]): Promise<InsertText[]> {
 
+  let inserts: InsertText[] = [];
 
   let inerStructStarField: FieldFull | null = null;
   let inerFields: FieldFull[] = [];
@@ -338,9 +339,10 @@ async function genTagsOfStruct(edit: vscode.TextEditorEdit, type: string | undef
           if (field.tagJson !== '' || (inerStructStarField?.names?.length && inerStructStarField?.names.length > 1)) {
             // 不处理
           } else {
-            await genTagOfField(edit, type, field, inerStructStarField?.names?.[0] ?? '');
+            inserts.push(await genTagOfField(edit, type, field, inerStructStarField?.names?.[0] ?? ''));
           }
-          await genTagsOfStruct(edit, type, inerFields);
+          let inerStruct = await genTagsOfStruct(edit, type, inerFields);
+          inserts.push(...inerStruct);
           inerStructStarField = null;
           inerCount = 0;
           inerFields = [];
@@ -357,20 +359,20 @@ async function genTagsOfStruct(edit: vscode.TextEditorEdit, type: string | undef
 
         let isStruc = await fieldTypeIsStruct(field);
         if (!isStruc) {
-          await genTagOfField(edit, type, field);
+          inserts.push(await genTagOfField(edit, type, field));
         }
 
       } else if (isInerStructStart(field)) {
         inerStructStarField = field;
         inerCount++;
       } else {
-        await genTagOfField(edit, type, field);
+        inserts.push(await genTagOfField(edit, type, field));
       }
     }
   }
 
 
-  return;
+  return inserts;
 }
 
 

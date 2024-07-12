@@ -40,3 +40,7 @@ export type FieldFull = {
 	document: TextDocument;
   };
   
+export type InsertText = {
+	position: Position
+	text: string
+}
